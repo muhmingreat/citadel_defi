@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Citadel Color Palette - Stoic & Defensive */
+    --citadel-slate: #020617;
+    --aegis-steel: #0f172a;
+    --growth-green: #10b981;
+    --fortress-red: #ef4444;
+    --oracle-amber: #f59e0b;
+    --citadel-indigo: #6366f1;
+
+    /* Semantic Design Tokens */
+    --background: var(--citadel-slate);
+    --foreground: #f8fafc;
+    --card: #0f172a;
+    --card-foreground: #f8fafc;
+    --popover: #0f172a;
+    --popover-foreground: #f8fafc;
+    --primary: #f8fafc;
+    --primary-foreground: #020617;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #334155;
+    --muted-foreground: #94a3b8;
+    --accent: var(--citadel-indigo);
+    --accent-foreground: #f8fafc;
+    --destructive: var(--fortress-red);
+    --destructive-foreground: #f8fafc;
+    --border: #1e293b;
+    --input: #0f172a;
+    --ring: var(--citadel-indigo);
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    @apply selection:bg-indigo-500/30;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  /* Sophisticated Grid Background */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-sans font-bold tracking-tight;
+  }
+}
+
+@layer components {
+
+  /* Glassmorphism Classes */
+  .glass-card {
+    @apply bg-slate-900/60 border border-white/10 shadow-2xl;
+  }
+
+  .glass-panel {
+    @apply bg-slate-950/40 border border-white/10;
+  }
+
+  /* Glowing Effects */
+  .glow-emerald {
+    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.4);
+  }
+
+  .glow-indigo {
+    box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.4);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+
+  /* Premium Card Styles */
+  .card-citadel {
+    @apply relative overflow-hidden bg-slate-900/60 border border-slate-800/60 rounded-2xl backdrop-blur-sm transition-all duration-500 hover:border-indigo-500/30 hover:bg-slate-900/80;
+  }
+
+  .card-citadel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99, 102, 241, 0.15) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+
+  .card-citadel:hover::after {
+    @apply opacity-100;
+  }
+
+  /* Liquid Button */
+  .btn-premium {
+    @apply relative inline-flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-300 rounded-xl overflow-hidden;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  }
+
+  .btn-premium:hover {
+    @apply scale-105;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+  }
+
+  .btn-premium::before {
+    content: "";
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  }
+
+  .btn-premium:hover::before {
+    @apply opacity-100;
+  }
+}
