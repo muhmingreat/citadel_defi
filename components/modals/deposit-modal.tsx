@@ -21,6 +21,13 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
   const { userAssetBalance, refetch } = useCitadelData();
   const [amount, setAmount] = useState('');
 
+  // Reset amount when modal closes
+  useEffect(() => {
+    if (!open) {
+      setAmount('');
+    }
+  }, [open]);
+
   // 1. Approval Logic
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: CONTRACTS.MockUSDC.address as `0x${string}`,
@@ -71,12 +78,22 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
 
   useEffect(() => {
     if (isDepositConfirmed) {
-      refetch();
-      const timer = setTimeout(() => {
+      // Wait a bit for blockchain state to update, then refetch
+      const refetchTimer = setTimeout(() => {
+        console.log('🔄 Deposit confirmed, refetching data...');
+        refetch();
+      }, 1000);
+      
+      // Close modal after showing success message
+      const closeTimer = setTimeout(() => {
         setAmount('');
         onOpenChange(false);
-      }, 2500);
-      return () => clearTimeout(timer);
+      }, 1200);
+      
+      return () => {
+        clearTimeout(refetchTimer);
+        clearTimeout(closeTimer);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDepositConfirmed]);

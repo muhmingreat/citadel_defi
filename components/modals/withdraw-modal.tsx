@@ -21,6 +21,13 @@ export function WithdrawModal({ open, onOpenChange }: WithdrawModalProps) {
   const { userVaultBalance, refetch } = useCitadelData();
   const [amount, setAmount] = useState('');
 
+  // Reset amount when modal closes
+  useEffect(() => {
+    if (!open) {
+      setAmount('');
+    }
+  }, [open]);
+
   const { data: hash, writeContract: withdraw, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({ hash });
@@ -38,12 +45,22 @@ export function WithdrawModal({ open, onOpenChange }: WithdrawModalProps) {
 
   useEffect(() => {
     if (isConfirmed) {
-      const timer = setTimeout(() => {
+      // Wait a bit for blockchain state to update, then refetch
+      const refetchTimer = setTimeout(() => {
+        console.log('🔄 Withdrawal confirmed, refetching data...');
         refetch();
+      }, 1000);
+      
+      // Close modal after showing success message
+      const closeTimer = setTimeout(() => {
         setAmount('');
         onOpenChange(false);
-      }, 2500);
-      return () => clearTimeout(timer);
+      }, 3000);
+      
+      return () => {
+        clearTimeout(refetchTimer);
+        clearTimeout(closeTimer);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfirmed]);

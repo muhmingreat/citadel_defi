@@ -149,9 +149,21 @@ export function VaultCard({
         </Button>
       </div>
 
-      {/* Modals - Only render when open to prevent ref loops */}
-      {depositOpen && <DepositModal open={depositOpen} onOpenChange={handleDepositOpenChange} />}
-      {withdrawOpen && <WithdrawModal open={withdrawOpen} onOpenChange={handleWithdrawOpenChange} />}
+      {/* Modals - Conditional rendering with proper keys */}
+      {depositOpen && (
+        <DepositModal 
+          key="deposit-modal" 
+          open={depositOpen} 
+          onOpenChange={handleDepositOpenChange} 
+        />
+      )}
+      {withdrawOpen && (
+        <WithdrawModal 
+          key="withdraw-modal" 
+          open={withdrawOpen} 
+          onOpenChange={handleWithdrawOpenChange} 
+        />
+      )}
     </div>
   );
 }

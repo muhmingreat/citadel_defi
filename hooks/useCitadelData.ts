@@ -16,10 +16,11 @@ export function useCitadelData() {
     const { address } = useAccount();
     const zeroAddr = (address || '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
-    // Common query config: 30s polling, long cache
+    // Common query config: 30s polling, short cache for fresh data
     const queryConfig = {
         refetchInterval: 30_000,
-        staleTime: 10_000,
+        staleTime: 1_000, // Consider data stale after 1 second
+        gcTime: 5_000, // Garbage collect after 5 seconds
         retry: 2,
     };
 

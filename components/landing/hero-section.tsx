@@ -4,9 +4,10 @@ import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { HeroVisual } from '@/components/landing/hero-visual';
 import { ArrowRight, ShieldCheck, Zap, BarChart3, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 export function HeroSection() {
   const router = useRouter();
@@ -14,9 +15,7 @@ export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]); // Parallax for text
   const y2 = useTransform(scrollY, [0, 500], [0, -100]); // Parallax for visual
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   const handleLaunch = () => {
     router.push('/dashboard');
@@ -126,7 +125,7 @@ export function HeroSection() {
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-emerald-500 to-indigo-500 opacity-20 group-hover:opacity-40 blur-lg transition-opacity" />
                       <span className="relative flex items-center justify-center gap-2">
-                        Initiate Connection
+                        Get Started
                         <Zap className="w-5 h-5 fill-current" />
                       </span>
                     </button>
@@ -134,10 +133,13 @@ export function HeroSection() {
                 </ConnectButton.Custom>
               )}
 
-              <button className="px-8 py-4 text-slate-400 font-semibold hover:text-white rounded-xl border border-transparent hover:border-slate-800 hover:bg-slate-900/50 transition-all duration-300 flex items-center gap-2 group">
-                Audit Registry
+              <Link 
+                href="/docs"
+                className="px-8 py-4 text-slate-400 font-semibold hover:text-white rounded-xl border border-transparent hover:border-slate-800 hover:bg-slate-900/50 transition-all duration-300 flex items-center gap-2 group"
+              >
+                Documentation
                 <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
-              </button>
+              </Link>
             </motion.div>
 
             {/* Micro-Metrics Grid */}

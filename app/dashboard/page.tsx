@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAccount, useWatchContractEvent } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { ShieldHeader } from '@/components/citadel/shield-header';
@@ -62,9 +62,21 @@ export default function DashboardPage() {
     return [];
   });
 
+  // Use ref to track last processed logs to prevent infinite loops
+  const lastProcessedLogsRef = useRef<string>('');
+
   // Sync historical logs locally
   useEffect(() => {
     if (historicalLogs && historicalLogs.length > 0) {
+      // Create a hash of the logs to detect actual changes
+      const logsHash = JSON.stringify(historicalLogs.map(l => l.transactionHash + l.logIndex));
+      
+      // Only process if logs have actually changed
+      if (logsHash === lastProcessedLogsRef.current) {
+        return;
+      }
+      
+      lastProcessedLogsRef.current = logsHash;
       const formatted = historicalLogs.map((log: any) => {
         const type = log.type;
         let msg = '';
