@@ -84,6 +84,17 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
         refetch();
       }, 1000);
       
+      // Trigger additional refetches to catch the new logs
+      const additionalRefetch1 = setTimeout(() => {
+        console.log('🔄 Additional refetch for logs...');
+        refetch();
+      }, 3000);
+      
+      const additionalRefetch2 = setTimeout(() => {
+        console.log('🔄 Final refetch for logs...');
+        refetch();
+      }, 6000);
+      
       // Close modal after showing success message
       const closeTimer = setTimeout(() => {
         setAmount('');
@@ -92,6 +103,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
       
       return () => {
         clearTimeout(refetchTimer);
+        clearTimeout(additionalRefetch1);
+        clearTimeout(additionalRefetch2);
         clearTimeout(closeTimer);
       };
     }

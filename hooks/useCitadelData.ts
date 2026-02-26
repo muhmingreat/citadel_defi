@@ -44,13 +44,13 @@ export function useCitadelData() {
     });
 
     // 3. APY & Strategy
-    const { data: netAPYRaw, status: s5, refetch: r5 } = useReadContract({
+    const { data: netAPYRaw, refetch: r5 } = useReadContract({
         ...CONTRACTS.StrategyManager, functionName: 'getNetAPY', query: queryConfig
     });
-    const { data: anchorYieldRaw, status: s6, refetch: r6 } = useReadContract({
+    const { data: anchorYieldRaw, refetch: r6 } = useReadContract({
         ...CONTRACTS.AsterDEXStrategy, functionName: 'yieldRate', query: queryConfig
     });
-    const { data: growthYieldRaw, status: s7, refetch: r7 } = useReadContract({
+    const { data: growthYieldRaw, refetch: r7 } = useReadContract({
         ...CONTRACTS.PancakeStrategy, functionName: 'yieldRate', query: queryConfig
     });
 
@@ -83,11 +83,14 @@ export function useCitadelData() {
                 const saved = localStorage.getItem('citadel_activity_logs');
                 if (saved) {
                     const parsed = JSON.parse(saved);
+                    console.log(`📂 Loaded ${parsed.length} logs from localStorage`);
                     // Ensure timestamps are properly converted
                     return parsed.map((log: any) => ({
                         ...log,
                         timestamp: typeof log.timestamp === 'number' ? log.timestamp : Math.floor(Date.now() / 1000)
                     }));
+                } else {
+                    console.log('📂 No saved logs found in localStorage');
                 }
             } catch (e) {
                 console.warn('Failed to load saved logs:', e);
@@ -108,8 +111,9 @@ export function useCitadelData() {
                 const currentBlock = await publicClient.getBlockNumber();
                 
                 // Determine the starting block for this fetch
+                // Use smaller block range (2000 blocks) for better reliability on public RPCs
                 const fromBlock = lastFetchBlock.current === BigInt(0) 
-                    ? currentBlock - BigInt(10000) // Initial fetch: last 10000 blocks
+                    ? currentBlock - BigInt(2000) // Initial fetch: last 2000 blocks (~1.5 hours on BSC)
                     : lastFetchBlock.current + BigInt(1); // Subsequent fetches: from last fetched block
                 
                 // Skip if we're already up to date
@@ -117,7 +121,14 @@ export function useCitadelData() {
                 
                 lastFetchBlock.current = currentBlock;
                 
-                const safeGetLogs = (p: any) => publicClient.getLogs(p).catch(() => []);
+                const safeGetLogs = async (p: any) => {
+                    try {
+                        return await publicClient.getLogs(p);
+                    } catch (error: any) {
+                        console.warn(`Failed to fetch logs: ${error.message}`);
+                        return [];
+                    }
+                };
 
                 const [modeLogs, volLogs, depositLogs, withdrawLogs] = await Promise.all([
                     safeGetLogs({ address: CONTRACTS.CitadelVault.address, event: parseAbiItem('event ModeChanged(uint8 newMode, uint256 triggerVolatility)'), fromBlock, toBlock: 'latest' }),
@@ -133,17 +144,23 @@ export function useCitadelData() {
                 });
 
                 const blockTimestamps = new Map<bigint, number>();
-                await Promise.all(
-                    Array.from(blockNumbers).map(async (blockNum) => {
-                        try {
-                            const block = await publicClient.getBlock({ blockNumber: blockNum });
-                            blockTimestamps.set(blockNum, Number(block.timestamp));
-                        } catch (e) {
-                            // Fallback to estimated time
-                            blockTimestamps.set(blockNum, Math.floor(Date.now() / 1000 - Number(currentBlock - blockNum) * 3));
-                        }
-                    })
-                );
+                
+                // Fetch block timestamps in smaller batches to avoid overwhelming the RPC
+                const blockArray = Array.from(blockNumbers);
+                for (let i = 0; i < blockArray.length; i += 5) {
+                    const batch = blockArray.slice(i, i + 5);
+                    await Promise.all(
+                        batch.map(async (blockNum) => {
+                            try {
+                                const block = await publicClient.getBlock({ blockNumber: blockNum });
+                                blockTimestamps.set(blockNum, Number(block.timestamp));
+                            } catch (e) {
+                                // Fallback to estimated time (BSC: ~3 seconds per block)
+                                blockTimestamps.set(blockNum, Math.floor(Date.now() / 1000 - Number(currentBlock - blockNum) * 3));
+                            }
+                        })
+                    );
+                }
 
                 const newLogs = [...modeLogs.map(l => ({ ...l, type: 'mode' })), ...volLogs.map(l => ({ ...l, type: 'volatility' })), ...depositLogs.map(l => ({ ...l, type: 'deposit' })), ...withdrawLogs.map(l => ({ ...l, type: 'withdraw' }))]
                     .sort((a, b) => Number(BigInt(b.blockNumber || 0) - BigInt(a.blockNumber || 0)))
@@ -168,10 +185,11 @@ export function useCitadelData() {
                         .sort((a, b) => b.timestamp - a.timestamp)
                         .slice(0, 100); // Keep last 100 logs
                     
-                    // Save to localStorage
+                    // Save to localStorage immediately
                     if (typeof window !== 'undefined') {
                         try {
                             localStorage.setItem('citadel_activity_logs', JSON.stringify(merged));
+                            console.log(`💾 Saved ${merged.length} logs to localStorage`);
                         } catch (e) {
                             console.warn('Failed to save logs:', e);
                         }
@@ -181,7 +199,8 @@ export function useCitadelData() {
                 });
             })(), 30_000);
         } catch (e: any) {
-            console.warn('⚠️ History fetch skipped:', e.message);
+            console.warn('⚠️ History fetch error:', e.message);
+            // Don't throw - allow the app to continue working
         }
     }, [publicClient]);
 
@@ -199,18 +218,28 @@ export function useCitadelData() {
 
     useEffect(() => {
         if (publicClient) {
+            console.log('🔌 Public client connected, starting log fetching...');
+            
             // Initial fetch
             if (!hasFetched.current) {
                 hasFetched.current = true;
+                console.log('📡 Starting initial log fetch...');
                 fetchHistory();
             }
             
-            // Set up polling to check for new logs every 10 seconds
+            // Set up polling to check for new logs every 15 seconds
+            console.log('⏰ Setting up 15-second polling for new logs...');
             const interval = setInterval(() => {
+                console.log('🔄 Polling for new logs...');
                 fetchHistory();
-            }, 10000);
+            }, 15000);
             
-            return () => clearInterval(interval);
+            return () => {
+                console.log('🛑 Cleaning up log polling interval');
+                clearInterval(interval);
+            };
+        } else {
+            console.warn('⚠️ Public client not available yet');
         }
     }, [publicClient, fetchHistory]);
 

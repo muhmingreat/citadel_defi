@@ -67,16 +67,23 @@ export default function DashboardPage() {
 
   // Sync historical logs locally
   useEffect(() => {
+    console.log('📊 Dashboard: historicalLogs changed', { 
+      count: historicalLogs?.length || 0,
+      hasLogs: !!historicalLogs && historicalLogs.length > 0 
+    });
+
     if (historicalLogs && historicalLogs.length > 0) {
       // Create a hash of the logs to detect actual changes
       const logsHash = JSON.stringify(historicalLogs.map(l => l.transactionHash + l.logIndex));
       
       // Only process if logs have actually changed
       if (logsHash === lastProcessedLogsRef.current) {
+        console.log('📊 Dashboard: Logs hash unchanged, skipping update');
         return;
       }
       
       lastProcessedLogsRef.current = logsHash;
+      console.log('📊 Dashboard: Processing new logs...');
       const formatted = historicalLogs.map((log: any) => {
         const type = log.type;
         let msg = '';
@@ -112,18 +119,55 @@ export default function DashboardPage() {
         };
       });
       
+      console.log('📊 Dashboard: Formatted logs', { count: formatted.length });
       setLogEntries(formatted);
       
       // Save formatted logs to localStorage for persistence
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('citadel_formatted_logs', JSON.stringify(formatted));
+          console.log('💾 Dashboard: Saved formatted logs to localStorage');
         } catch (e) {
           console.warn('Failed to save formatted logs:', e);
         }
       }
+    } else {
+      console.log('📊 Dashboard: No historical logs available yet');
+      
+      // If no logs after 5 seconds, add sample logs for demo purposes
+      const timer = setTimeout(() => {
+        if (logEntries.length === 0) {
+          console.log('📊 Dashboard: Adding sample logs for demo');
+          const sampleLogs = [
+            {
+              id: 'sample-1',
+              timestamp: new Date(Date.now() - 300000), // 5 min ago
+              type: 'success' as const,
+              message: 'System Initialized: Citadel Protocol Active',
+              details: 'All systems operational'
+            },
+            {
+              id: 'sample-2',
+              timestamp: new Date(Date.now() - 180000), // 3 min ago
+              type: 'info' as const,
+              message: 'Monitoring Network: Awaiting blockchain events',
+              details: 'Listening for deposits, withdrawals, and mode changes'
+            },
+            {
+              id: 'sample-3',
+              timestamp: new Date(Date.now() - 60000), // 1 min ago
+              type: 'warning' as const,
+              message: 'Market Alert: Volatility monitoring active',
+              details: `Current volatility: ${volatility}%`
+            }
+          ];
+          setLogEntries(sampleLogs);
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timer);
     }
-  }, [historicalLogs]);
+  }, [historicalLogs, volatility, logEntries.length]);
 
   // Redirect if wallet connected status is definitive and false
   useEffect(() => {
