@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Vercel serverless function configuration
+export const runtime = 'edge'; // Use edge runtime for better performance
+export const dynamic = 'force-dynamic'; // Disable caching for RPC requests
+
 export async function GET() {
     return NextResponse.json({ status: 'ok', branding: 'Citadel Proxy Active' });
 }
@@ -15,8 +19,19 @@ export async function POST(req: NextRequest) {
         'https://bsc-testnet.drpc.org',
     ];
 
+    let body;
     try {
-        const body = await req.json();
+        body = await req.json();
+    } catch (parseError: any) {
+        console.error('[Proxy] Failed to parse request body:', parseError.message);
+        return NextResponse.json({ 
+            jsonrpc: "2.0",
+            id: null,
+            error: { code: -32700, message: "Parse error" }
+        }, { status: 400 });
+    }
+
+    try {
 
         // Heartbeat skip
         if (body.method !== 'eth_blockNumber' && body.method !== 'eth_getFilterChanges') {
@@ -25,7 +40,7 @@ export async function POST(req: NextRequest) {
 
         const fetchNode = async (url: string) => {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s for testnet
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for Vercel
 
             try {
                 const res = await fetch(url, {
@@ -68,7 +83,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        console.error('[Proxy] Critical Failure: All RPC nodes timed out or failed');
+        console.error('[Proxy] Critical Failure: All RPC nodes timed out or failed', lastError);
 
         // Return a valid JSON-RPC error response instead of just a raw text 502
         return NextResponse.json({
@@ -79,9 +94,18 @@ export async function POST(req: NextRequest) {
                 message: "Internal RPC Proxy Error: All nodes offline",
                 data: lastError?.message
             }
-        }, { status: 502 });
+        }, { status: 200 }); // Return 200 with JSON-RPC error instead of 502
 
     } catch (error: any) {
-        return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+        console.error('[Proxy] Unexpected error:', error);
+        return NextResponse.json({ 
+            jsonrpc: "2.0",
+            id: body?.id || null,
+            error: { 
+                code: -32603, 
+                message: "Internal server error",
+                data: error.message 
+            }
+        }, { status: 200 }); // Return 200 with JSON-RPC error format
     }
 }
