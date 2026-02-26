@@ -46,12 +46,25 @@ export function ActivityLog({ entries }: ActivityLogProps) {
   };
 
   const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).format(date);
+    try {
+      // Ensure we have a valid Date object
+      const validDate = date instanceof Date ? date : new Date(date);
+      
+      // Check if the date is valid
+      if (isNaN(validDate.getTime())) {
+        return '00:00:00';
+      }
+      
+      return new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(validDate);
+    } catch (error) {
+      console.warn('Invalid timestamp in activity log:', date);
+      return '00:00:00';
+    }
   };
 
   const nextPage = () => {

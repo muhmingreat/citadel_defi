@@ -1,7 +1,7 @@
 import { useReadContract, useAccount, usePublicClient } from 'wagmi';
 import { CONTRACTS } from '@/config/contracts';
 import { formatUnits, parseAbiItem } from 'viem';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Hard deadline helper
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
@@ -75,10 +75,30 @@ export function useCitadelData() {
 
     // ─── History (non-critical) ───
     const publicClient = usePublicClient();
-    const [historicalLogs, setHistoricalLogs] = useState<any[]>([]);
+    const [historicalLogs, setHistoricalLogs] = useState<any[]>(() => {
+        // Load from localStorage on initial mount
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('citadel_activity_logs');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Ensure timestamps are properly converted
+                    return parsed.map((log: any) => ({
+                        ...log,
+                        timestamp: typeof log.timestamp === 'number' ? log.timestamp : Math.floor(Date.now() / 1000)
+                    }));
+                }
+            } catch (e) {
+                console.warn('Failed to load saved logs:', e);
+                // Clear corrupted data
+                localStorage.removeItem('citadel_activity_logs');
+            }
+        }
+        return [];
+    });
     const hasFetched = useRef(false);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         if (!publicClient || hasFetched.current) return;
         hasFetched.current = true;
         try {
@@ -94,15 +114,38 @@ export function useCitadelData() {
                     safeGetLogs({ address: CONTRACTS.CitadelVault.address, event: parseAbiItem('event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'), fromBlock, toBlock: 'latest' }),
                 ]);
 
-                const sorted = [...modeLogs.map(l => ({ ...l, type: 'mode' })), ...volLogs.map(l => ({ ...l, type: 'volatility' })), ...depositLogs.map(l => ({ ...l, type: 'deposit' })), ...withdrawLogs.map(l => ({ ...l, type: 'withdraw' }))]
-                    .sort((a, b) => Number(BigInt(b.blockNumber || 0) - BigInt(a.blockNumber || 0))).slice(0, 10)
+                const newLogs = [...modeLogs.map(l => ({ ...l, type: 'mode' })), ...volLogs.map(l => ({ ...l, type: 'volatility' })), ...depositLogs.map(l => ({ ...l, type: 'deposit' })), ...withdrawLogs.map(l => ({ ...l, type: 'withdraw' }))]
+                    .sort((a, b) => Number(BigInt(b.blockNumber || 0) - BigInt(a.blockNumber || 0)))
                     .map(l => ({ ...l, timestamp: Math.floor(Date.now() / 1000 - Number(currentBlock - (l.blockNumber || currentBlock)) * 3) }));
-                setHistoricalLogs(sorted);
-            })(), 12_000);
+
+                setHistoricalLogs(prev => {
+                    // Merge with existing logs, avoiding duplicates
+                    const existingIds = new Set(prev.map(l => `${l.transactionHash}-${l.logIndex}`));
+                    const uniqueNewLogs = newLogs.filter(l => !existingIds.has(`${l.transactionHash}-${l.logIndex}`));
+                    
+                    // If no new logs, don't update state
+                    if (uniqueNewLogs.length === 0) return prev;
+                    
+                    const merged = [...uniqueNewLogs, ...prev]
+                        .sort((a, b) => b.timestamp - a.timestamp)
+                        .slice(0, 50); // Keep last 50 logs
+                    
+                    // Save to localStorage
+                    if (typeof window !== 'undefined') {
+                        try {
+                            localStorage.setItem('citadel_activity_logs', JSON.stringify(merged));
+                        } catch (e) {
+                            console.warn('Failed to save logs:', e);
+                        }
+                    }
+                    
+                    return merged;
+                });
+            })(), 30_000);
         } catch (e: any) {
             console.warn('⚠️ History fetch skipped:', e.message);
         }
-    };
+    }, [publicClient]);
 
     // Debug sync
     useEffect(() => {
@@ -114,16 +157,27 @@ export function useCitadelData() {
                 address: zeroAddr
             });
         }
-    }, [totalAssets, walletBalance, address]);
+    }, [totalAssets, walletBalance, tvl, userAssetBalance, mode, zeroAddr]);
 
-    useEffect(() => { fetchHistory(); }, [!!publicClient]);
+    useEffect(() => {
+        if (publicClient && !hasFetched.current) {
+            fetchHistory();
+        }
+    }, [publicClient, fetchHistory]);
+
+    // Memoize refetch to prevent infinite loops in components using this hook
+    const refetch = useCallback(() => {
+        console.log("🔄 Refetching Citadel data...");
+        r0(); r1(); r2(); r3(); r4(); r5(); r6(); r7();
+        hasFetched.current = false;
+    }, [r0, r1, r2, r3, r4, r5, r6, r7]);
 
     return {
         tvl, mode, volatility, userVaultBalance, userAssetBalance,
         anchorAllocation, growthAllocation, netAPY, anchorYield, boosterYield,
         historicalLogs: historicalLogs.map(l => ({ ...l, blockDate: new Date(l.timestamp * 1000) })),
         isLoading, isError,
-        refetch: () => { r0(); r1(); r2(); r3(); r4(); r5(); r6(); r7(); fetchHistory(); },
+        refetch,
         CONTRACTS,
     };
 }

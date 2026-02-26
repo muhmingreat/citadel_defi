@@ -40,7 +40,27 @@ export default function DashboardPage() {
   } = useCitadelData();
 
   const [alerts] = useState<Alert[]>([]);
-  const [logEntries, setLogEntries] = useState<any[]>([]);
+  const [logEntries, setLogEntries] = useState<any[]>(() => {
+    // Load from localStorage on initial mount
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('citadel_formatted_logs');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Ensure timestamps are proper Date objects
+          return parsed.map((entry: any) => ({
+            ...entry,
+            timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+          }));
+        }
+      } catch (e) {
+        console.warn('Failed to load formatted logs:', e);
+        // Clear corrupted data
+        localStorage.removeItem('citadel_formatted_logs');
+      }
+    }
+    return [];
+  });
 
   // Sync historical logs locally
   useEffect(() => {
@@ -79,7 +99,17 @@ export default function DashboardPage() {
           details: details,
         };
       });
+      
       setLogEntries(formatted);
+      
+      // Save formatted logs to localStorage for persistence
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('citadel_formatted_logs', JSON.stringify(formatted));
+        } catch (e) {
+          console.warn('Failed to save formatted logs:', e);
+        }
+      }
     }
   }, [historicalLogs]);
 

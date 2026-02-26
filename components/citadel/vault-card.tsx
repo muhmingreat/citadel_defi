@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DepositModal } from '@/components/modals/deposit-modal';
@@ -28,6 +28,15 @@ export function VaultCard({
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const totalApy = netAPY; // Use the on-chain calculated APY
+
+  // Memoize callbacks to prevent infinite re-renders in Dialog components
+  const handleDepositOpenChange = useCallback((open: boolean) => {
+    setDepositOpen(open);
+  }, []);
+
+  const handleWithdrawOpenChange = useCallback((open: boolean) => {
+    setWithdrawOpen(open);
+  }, []);
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -140,9 +149,9 @@ export function VaultCard({
         </Button>
       </div>
 
-      {/* Modals */}
-      <DepositModal open={depositOpen} onOpenChange={setDepositOpen} />
-      <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
+      {/* Modals - Only render when open to prevent ref loops */}
+      {depositOpen && <DepositModal open={depositOpen} onOpenChange={handleDepositOpenChange} />}
+      {withdrawOpen && <WithdrawModal open={withdrawOpen} onOpenChange={handleWithdrawOpenChange} />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,13 +38,15 @@ export function WithdrawModal({ open, onOpenChange }: WithdrawModalProps) {
 
   useEffect(() => {
     if (isConfirmed) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         refetch();
-        onOpenChange(false);
         setAmount('');
+        onOpenChange(false);
       }, 2500);
+      return () => clearTimeout(timer);
     }
-  }, [isConfirmed, refetch, onOpenChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConfirmed]);
 
   const handleMaxClick = () => {
     setAmount(userVaultBalance.toString());
@@ -80,6 +82,9 @@ export function WithdrawModal({ open, onOpenChange }: WithdrawModalProps) {
           <DialogTitle className="text-xl font-semibold text-white">
             Withdraw from Citadel
           </DialogTitle>
+          <DialogDescription className="text-slate-400 text-xs">
+            Enter the amount of assets you wish to withdraw from the vault back to your wallet.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

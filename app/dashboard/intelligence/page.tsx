@@ -34,7 +34,27 @@ export default function IntelligencePage() {
 
     // Re-implementing log logic locally for this page as it's the main view for logs
     // ideally this should be in a global context but for this refactor we keep it here
-    const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+    const [logEntries, setLogEntries] = useState<LogEntry[]>(() => {
+        // Load from localStorage on initial mount
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('citadel_intelligence_logs');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // Ensure timestamps are proper Date objects
+                    return parsed.map((entry: any) => ({
+                        ...entry,
+                        timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date()
+                    }));
+                }
+            } catch (e) {
+                console.warn('Failed to load intelligence logs:', e);
+                // Clear corrupted data
+                localStorage.removeItem('citadel_intelligence_logs');
+            }
+        }
+        return [];
+    });
     const [aiBriefing, setAiBriefing] = useState<string>("Initializing Neural Core...");
     const [aiRationale, setAiRationale] = useState<string>("");
     const [aiTelemetry, setAiTelemetry] = useState({ sync: "...", logic: "...", response: "...", neuralWeight: "..." });
@@ -99,7 +119,18 @@ export default function IntelligencePage() {
                 const existingIds = new Set(prev.map(l => l.id));
                 const newLogs = formatted.filter(l => !existingIds.has(l.id));
                 if (newLogs.length === 0) return prev;
-                return [...newLogs, ...prev].slice(0, 50); // Keep more logs here
+                const updated = [...newLogs, ...prev].slice(0, 50); // Keep more logs here
+                
+                // Save to localStorage for persistence
+                if (typeof window !== 'undefined') {
+                    try {
+                        localStorage.setItem('citadel_intelligence_logs', JSON.stringify(updated));
+                    } catch (e) {
+                        console.warn('Failed to save intelligence logs:', e);
+                    }
+                }
+                
+                return updated;
             });
         }
     }, [historicalLogs]);

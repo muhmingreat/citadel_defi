@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
   const [amount, setAmount] = useState('');
 
   // 1. Approval Logic
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: CONTRACTS.MockUSDC.address as `0x${string}`,
     abi: CONTRACTS.MockUSDC.abi,
     functionName: 'allowance',
@@ -61,15 +61,25 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
     }
   };
 
+  // Simple effects - no complex dependencies
+  useEffect(() => {
+    if (isApproveConfirmed) {
+      refetchAllowance();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isApproveConfirmed]);
+
   useEffect(() => {
     if (isDepositConfirmed) {
-      setTimeout(() => {
-        refetch();
-        onOpenChange(false);
+      refetch();
+      const timer = setTimeout(() => {
         setAmount('');
-      }, 2000);
+        onOpenChange(false);
+      }, 2500);
+      return () => clearTimeout(timer);
     }
-  }, [isDepositConfirmed, refetch, onOpenChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDepositConfirmed]);
 
   const handleMaxClick = () => {
     setAmount(userAssetBalance.toString());
@@ -84,6 +94,9 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
           <DialogTitle className="text-xl font-semibold text-white">
             Deposit to Citadel
           </DialogTitle>
+          <DialogDescription className="text-slate-400 text-xs">
+            Confirm your deposit amount. You may need to approve the transaction in your wallet.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -117,7 +130,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
           {(isApproveConfirmed || isDepositConfirmed) && (
             <div className="flex items-center gap-2 text-emerald-400 text-sm font-mono animate-pulse">
               <Check className="w-4 h-4" />
-              {isDepositConfirmed ? 'Deposit Successful!' : 'Approval Confirmed! Proceed to Deposit.'}
+              {isDepositConfirmed ? 'Deposit Successful! Updating balances...' : 
+               'Approval Confirmed! Click button again to deposit.'}
             </div>
           )}
 
@@ -134,8 +148,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
               onClick={handleAction}
               disabled={isPending || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > userAssetBalance}
               className={`flex-1 gap-2 h-11 font-bold text-white transition-all ${needsApproval
-                  ? 'bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-900/20'
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-900/20'
+                ? 'bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-900/20'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-900/20'
                 }`}
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -156,4 +170,3 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
     </Dialog>
   );
 }
-
