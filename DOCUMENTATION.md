@@ -375,12 +375,13 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Connecting Wallet
 
 1. Install MetaMask browser extension
-2. Add Hardhat network:
-   - Network Name: Hardhat Local
-   - RPC URL: http://127.0.0.1:8545
-   - Chain ID: 31337
-   - Currency: ETH
-3. Import test account from Hardhat output
+2. Add BNB Smart Chain Testnet:
+   - Network Name: BNB Smart Chain Testnet
+   - RPC URL: https://data-seed-prebsc-1-s1.binance.org:8545
+   - Chain ID: 97
+   - Currency Symbol: tBNB
+   - Block Explorer: https://testnet.bscscan.com
+3. Get testnet BNB from [BNB Testnet Faucet](https://testnet.bnbchain.org/faucet-smart)
 4. Click "Connect Wallet" in app
 
 ---

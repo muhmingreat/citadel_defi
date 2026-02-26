@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,12 +53,31 @@ export function HeroSection() {
         {/* Deep Atmospheric Gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(15,23,42,0)_0%,_#0F172A_80%)] z-10" />
 
-        {/* Animated Aurora */}
+        {/* Animated Aurora - Much smaller and subtle */}
         <motion.div
-          className="absolute -top-[20%] -right-[10%] w-[80vw] h-[80vw] bg-indigo-600/5 rounded-full"
+          className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-indigo-600/5 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         />
         <motion.div
-          className="absolute -bottom-[20%] -left-[10%] w-[80vw] h-[80vw] bg-emerald-600/5 rounded-full"
+          className="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-emerald-600/5 rounded-full blur-3xl"
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
         />
 
         {/* Grid Texture */}
@@ -210,3 +229,6 @@ export function HeroSection() {
     </section>
   );
 }
+
+
+

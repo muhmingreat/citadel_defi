@@ -87,18 +87,19 @@ npm run dev`;
           <li className="flex gap-3">
             <span className="text-indigo-400 font-mono font-bold">2.</span>
             <div>
-              <span className="block mb-2">Add Hardhat network:</span>
+              <span className="block mb-2">Add BNB Smart Chain Testnet:</span>
               <ul className="ml-4 space-y-1 text-sm">
-                <li>• Network Name: Hardhat Local</li>
-                <li>• RPC URL: http://127.0.0.1:8545</li>
-                <li>• Chain ID: 31337</li>
-                <li>• Currency: ETH</li>
+                <li>• Network Name: BNB Smart Chain Testnet</li>
+                <li>• RPC URL: https://data-seed-prebsc-1-s1.binance.org:8545</li>
+                <li>• Chain ID: 97</li>
+                <li>• Currency Symbol: tBNB</li>
+                <li>• Block Explorer: https://testnet.bscscan.com</li>
               </ul>
             </div>
           </li>
           <li className="flex gap-3">
             <span className="text-indigo-400 font-mono font-bold">3.</span>
-            <span>Import test account from Hardhat output</span>
+            <span>Get testnet BNB from <a href="https://testnet.bnbchain.org/faucet-smart" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">BNB Testnet Faucet</a></span>
           </li>
           <li className="flex gap-3">
             <span className="text-indigo-400 font-mono font-bold">4.</span>

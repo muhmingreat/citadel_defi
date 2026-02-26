@@ -98,14 +98,25 @@ export function useCitadelData() {
         return [];
     });
     const hasFetched = useRef(false);
+    const lastFetchBlock = useRef<bigint>(BigInt(0));
 
     const fetchHistory = useCallback(async () => {
-        if (!publicClient || hasFetched.current) return;
-        hasFetched.current = true;
+        if (!publicClient) return;
+        
         try {
             await withTimeout((async () => {
                 const currentBlock = await publicClient.getBlockNumber();
-                const fromBlock = currentBlock - BigInt(10000);
+                
+                // Determine the starting block for this fetch
+                const fromBlock = lastFetchBlock.current === BigInt(0) 
+                    ? currentBlock - BigInt(10000) // Initial fetch: last 10000 blocks
+                    : lastFetchBlock.current + BigInt(1); // Subsequent fetches: from last fetched block
+                
+                // Skip if we're already up to date
+                if (fromBlock > currentBlock) return;
+                
+                lastFetchBlock.current = currentBlock;
+                
                 const safeGetLogs = (p: any) => publicClient.getLogs(p).catch(() => []);
 
                 const [modeLogs, volLogs, depositLogs, withdrawLogs] = await Promise.all([
@@ -115,9 +126,35 @@ export function useCitadelData() {
                     safeGetLogs({ address: CONTRACTS.CitadelVault.address, event: parseAbiItem('event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)'), fromBlock, toBlock: 'latest' }),
                 ]);
 
+                // Get block timestamps for accurate time display
+                const blockNumbers = new Set<bigint>();
+                [...modeLogs, ...volLogs, ...depositLogs, ...withdrawLogs].forEach(log => {
+                    if (log.blockNumber) blockNumbers.add(log.blockNumber);
+                });
+
+                const blockTimestamps = new Map<bigint, number>();
+                await Promise.all(
+                    Array.from(blockNumbers).map(async (blockNum) => {
+                        try {
+                            const block = await publicClient.getBlock({ blockNumber: blockNum });
+                            blockTimestamps.set(blockNum, Number(block.timestamp));
+                        } catch (e) {
+                            // Fallback to estimated time
+                            blockTimestamps.set(blockNum, Math.floor(Date.now() / 1000 - Number(currentBlock - blockNum) * 3));
+                        }
+                    })
+                );
+
                 const newLogs = [...modeLogs.map(l => ({ ...l, type: 'mode' })), ...volLogs.map(l => ({ ...l, type: 'volatility' })), ...depositLogs.map(l => ({ ...l, type: 'deposit' })), ...withdrawLogs.map(l => ({ ...l, type: 'withdraw' }))]
                     .sort((a, b) => Number(BigInt(b.blockNumber || 0) - BigInt(a.blockNumber || 0)))
-                    .map(l => ({ ...l, timestamp: Math.floor(Date.now() / 1000 - Number(currentBlock - (l.blockNumber || currentBlock)) * 3) }));
+                    .map(l => ({ 
+                        ...l, 
+                        timestamp: blockTimestamps.get(l.blockNumber || BigInt(0)) || Math.floor(Date.now() / 1000)
+                    }));
+
+                if (newLogs.length > 0) {
+                    console.log(`📊 Fetched ${newLogs.length} new logs from blocks ${fromBlock} to ${currentBlock}`);
+                }
 
                 setHistoricalLogs(prev => {
                     // Merge with existing logs, avoiding duplicates
@@ -129,7 +166,7 @@ export function useCitadelData() {
                     
                     const merged = [...uniqueNewLogs, ...prev]
                         .sort((a, b) => b.timestamp - a.timestamp)
-                        .slice(0, 50); // Keep last 50 logs
+                        .slice(0, 100); // Keep last 100 logs
                     
                     // Save to localStorage
                     if (typeof window !== 'undefined') {
@@ -161,8 +198,19 @@ export function useCitadelData() {
     }, [totalAssets, walletBalance, tvl, userAssetBalance, mode, zeroAddr]);
 
     useEffect(() => {
-        if (publicClient && !hasFetched.current) {
-            fetchHistory();
+        if (publicClient) {
+            // Initial fetch
+            if (!hasFetched.current) {
+                hasFetched.current = true;
+                fetchHistory();
+            }
+            
+            // Set up polling to check for new logs every 10 seconds
+            const interval = setInterval(() => {
+                fetchHistory();
+            }, 10000);
+            
+            return () => clearInterval(interval);
         }
     }, [publicClient, fetchHistory]);
 
@@ -170,8 +218,9 @@ export function useCitadelData() {
     const refetch = useCallback(() => {
         console.log("🔄 Refetching Citadel data...");
         r0(); r1(); r2(); r3(); r4(); r5(); r6(); r7();
-        hasFetched.current = false;
-    }, [r0, r1, r2, r3, r4, r5, r6, r7]);
+        // Also fetch new logs when manually refreshing
+        fetchHistory();
+    }, [r0, r1, r2, r3, r4, r5, r6, r7, fetchHistory]);
 
     return {
         tvl, mode, volatility, userVaultBalance, userAssetBalance,

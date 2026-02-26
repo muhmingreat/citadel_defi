@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from 'framer-motion';
+import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { CitadelLogo } from '@/components/ui/citadel-logo';
 
 export function HeroVisual() {
@@ -27,20 +27,20 @@ export function HeroVisual() {
         <div
             ref={ref}
             onMouseMove={handleMouseMove}
-            className="relative w-full aspect-square max-w-[650px] mx-auto flex items-center justify-center perspective-1000 group sm:pointer-events-auto"
+            className="relative w-full aspect-square max-w-[400px] mx-auto flex items-center justify-center perspective-1000 group sm:pointer-events-auto"
         >
             {/* 
                 Ambient Atmosphere 
                 Deep, layered glows that breath with the UI
             */}
             <motion.div
-                className="absolute inset-0 bg-indigo-600/5 rounded-full"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
+                className="absolute inset-0 bg-indigo-600/5 rounded-full blur-2xl"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.05, 0.1, 0.05] }}
                 transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div
-                className="absolute inset-0 bg-emerald-500/5 rounded-full translate-x-1/4 translate-y-1/4"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.05, 0.1, 0.05] }}
+                className="absolute inset-0 bg-emerald-500/5 rounded-full translate-x-1/4 translate-y-1/4 blur-2xl"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.03, 0.06, 0.03] }}
                 transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 1 }}
             />
 
@@ -184,15 +184,15 @@ export function HeroVisual() {
                         <div className="absolute -inset-10 bg-indigo-500/10 rounded-full animate-pulse-slow group-hover:bg-indigo-500/20 transition-colors duration-500" />
 
                         {/* Glass Container */}
-                        <div className="relative p-8 sm:p-12 rounded-[3rem] glass-card border-white/10 group-hover:border-indigo-500/60 transition-all duration-500 shadow-[0_0_80px_-20px_rgba(99,102,241,0.5)]">
+                        <div className="relative p-6 sm:p-8 rounded-[2.5rem] glass-card border-white/10 group-hover:border-indigo-500/60 transition-all duration-500 shadow-[0_0_60px_-20px_rgba(99,102,241,0.4)]">
                             <motion.div
                                 animate={{
-                                    y: [0, -6, 0],
-                                    rotateZ: [0, 2, 0]
+                                    y: [0, -4, 0],
+                                    rotateZ: [0, 1.5, 0]
                                 }}
                                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                             >
-                                <CitadelLogo className="w-28 h-28 sm:w-40 sm:h-40 text-white" />
+                                <CitadelLogo className="w-20 h-20 sm:w-28 sm:h-28 text-white" />
                             </motion.div>
                         </div>
 

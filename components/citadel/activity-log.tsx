@@ -45,25 +45,33 @@ export function ActivityLog({ entries }: ActivityLogProps) {
     }
   };
 
-  const formatTime = (date: Date) => {
+  const formatDateTime = (date: Date) => {
     try {
       // Ensure we have a valid Date object
       const validDate = date instanceof Date ? date : new Date(date);
       
       // Check if the date is valid
       if (isNaN(validDate.getTime())) {
-        return '00:00:00';
+        return { date: 'N/A', time: '00:00:00' };
       }
       
-      return new Intl.DateTimeFormat('en-US', {
+      const dateStr = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(validDate);
+      
+      const timeStr = new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
         hour12: false,
       }).format(validDate);
+      
+      return { date: dateStr, time: timeStr };
     } catch (error) {
       console.warn('Invalid timestamp in activity log:', date);
-      return '00:00:00';
+      return { date: 'N/A', time: '00:00:00' };
     }
   };
 
@@ -104,33 +112,41 @@ export function ActivityLog({ entries }: ActivityLogProps) {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              {currentEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-indigo-500/30 transition-all group"
-                >
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3 text-slate-500" />
-                      <span className="text-[10px] font-mono text-slate-500">
-                        {formatTime(entry.timestamp)}
-                      </span>
+              {currentEntries.map((entry) => {
+                const { date, time } = formatDateTime(entry.timestamp);
+                return (
+                  <div
+                    key={entry.id}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 hover:border-indigo-500/30 transition-all group"
+                  >
+                    <div className="flex justify-between items-start border-b border-slate-800 pb-2">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3 text-slate-500" />
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {date}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-500 ml-5">
+                          {time}
+                        </span>
+                      </div>
+                      {getIcon(entry.type)}
                     </div>
-                    {getIcon(entry.type)}
-                  </div>
 
-                  <div className="flex-1">
-                    <p className={`${getTypeColor(entry.type)} text-xs font-mono leading-relaxed mb-1`}>
-                      {entry.message}
-                    </p>
-                    {entry.details && (
-                      <p className="text-slate-500 text-[10px] italic">
-                        {entry.details}
+                    <div className="flex-1">
+                      <p className={`${getTypeColor(entry.type)} text-xs font-mono leading-relaxed mb-1`}>
+                        {entry.message}
                       </p>
-                    )}
+                      {entry.details && (
+                        <p className="text-slate-500 text-[10px] italic">
+                          {entry.details}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Fillers for layout consistency */}
               {currentEntries.length < itemsPerPage &&
